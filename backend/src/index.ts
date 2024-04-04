@@ -1,70 +1,39 @@
 import { Hono } from 'hono'
-import { PrismaClient } from '@prisma/client/edge'
-import { withAccelerate } from '@prisma/extension-accelerate'
-import {sign} from 'hono/jwt'
+import { userRouter } from './routes/user';
+import { blogRouter } from './routes/blog';
+import { verify} from 'hono/jwt'
 
 const app = new Hono<{
+  // typescript doesn't understand wrangler.toml code
+  // passing the generics 
     Bindings: {
-      DATABASE_URL: string,
-      JWT_SECRET:string
+      DATABASE_URL: string;
+      JWT_SECRET:string;
     }
 }>()
 
-app.post('/api/v1/signup',async (c) => {
-  // c is basically context has all our request and response and environment variable etc
-  // specify our env variable type
-  // we can't give environment variable outside 
-  // we don't have global access in serverless
-  const prisma = new PrismaClient({
-    datasourceUrl: c.env.DATABASE_URL,
-}).$extends(withAccelerate())
-// .env  accessed from the wrangler.toml
-// Cloudflare picks environment variable from wrangler.toml
+app.route("/api/v1/user",userRouter)
+app.route("/api/v1/blog",blogRouter)
 
-// this is how we get the body in Hono
-// we have to await when it is converted to json
-  const body = await c.req.json();
-  const user = await prisma.user.create({
-    data:{
-      email:body.email,
-      password:body.email
-    },
-  })
-  const token =await sign({id:user.id},c.env.JWT_SECRET)
-  return c.json({jwt: token})
+app.use('/api/v1/blog/*', async (c, next) => {
+  // get the header
+  // verify the header
+  // if the header is correct , we can proceed
+  // if not, we return the user a 403 status code
+  const header = c.req.header("authorization") || "";
+  // Bearer token(format of the token)
+  // ["Bearer","token"]
+  const token = header.split(" ")[1]
+
+  const response =await verify(token,c.env.JWT_SECRET)
+  if(response.id){
+    next()
+  }else{
+    c.status(403)
+    return c.json({error:"unauthorized"})
+  }
 })
 
-app.post('/api/v1/signin', async (c) => {
-	const prisma = new PrismaClient({
-		datasourceUrl: c.env?.DATABASE_URL	,
-	}).$extends(withAccelerate());
-
-	const body = await c.req.json();
-	const user = await prisma.user.findUnique({
-		where: {
-			email: body.email,
-      password: body.password
-		}
-	});
-
-	if (!user) {
-		c.status(403);
-		return c.json({ error: "user not found" });
-	}
-
-	const jwt = await sign({ id: user.id }, c.env.JWT_SECRET);
-	return c.json({ jwt });
-})
-
-app.post('/api/v1/blog', (c) => {
-  return c.text('post blog!')
-})
-app.put('/api/v1/blog', (c) => {
-  return c.text('Hello Hono!')
-})
-app.get('/api/v1/blog/:id', (c) => {
-  return c.text('Hello Hono!')
-})
 // dynamic parameter
 
 export default app
