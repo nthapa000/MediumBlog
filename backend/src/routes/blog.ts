@@ -30,22 +30,27 @@ blogRouter.use('/*', async (c, next) => {
   
     // decode is similar to decode a jwt and give orginal jwt 
     // but verification can be done only with the secret_password
+    try{
     const user =await verify(token,c.env.JWT_SECRET)
     if(user){
         // we can also do bad solution @ts-ignore
         c.set("userId",user.id)
         // context or c doesn't have userId as a key , hence we again need to modify the Bindings
-      next()
+     await next()
     }else{
       c.status(403)
       return c.json({error:"unauthorized"})
     }
+  }catch(e){
+    c.status(403)
+    return c.json({error:"error"})
+  }
   })
   
 
 blogRouter.post("/", async (c) => {
+  const userId = c.get("userId")
   const body = await c.req.json();
-  const authorId = c.get("userId")
 //   we can modify the context c which we done in the default middleware
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
@@ -55,7 +60,7 @@ blogRouter.post("/", async (c) => {
     data: {
       title: body.title,
       content: body.content,
-      authorId: "1",
+      authorId: userId
       // the extraction will occur in the middleware
     },
   });
@@ -87,8 +92,23 @@ blogRouter.put("/", async (c) => {
   });
 });
 
+// Ideally we should add pagination meaning that we should not add all the post , suppose we return only 10 and user ask for more when it scroll
+blogRouter.get("/bulk", async (c) => {
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+  }).$extends(withAccelerate());
+  const blogs = await prisma.post.findMany();
+  //getting all the blogs
+  return c.json({
+    blogs
+  })
+});
+// we move this endpoint up so that control reaches this endpoint before reaching the id endpoint so that control misunderstand the bulk rrequest as the id request
+
+
 blogRouter.get("/:id", async (c) => {
-  const body = await c.req.json();
+//  body make no sense in get request
+  const id = c.req.param("id");
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate());
@@ -96,7 +116,7 @@ blogRouter.get("/:id", async (c) => {
     // must be wrapped because this request can fail due to multiple reasons
     const blog = await prisma.post.findFirst({
       where: {
-        id: body.id,
+        id: id,
       },
     });
     return c.json({
@@ -110,14 +130,3 @@ blogRouter.get("/:id", async (c) => {
   }
 });
 
-// Ideally we should add pagination meaning that we should not add all the post , suppose we return only 10 and user ask for more when it scroll
-blogRouter.get("/bulk", async (c) => {
-  const prisma = new PrismaClient({
-    datasourceUrl: c.env.DATABASE_URL,
-  }).$extends(withAccelerate());
-  const blogs = prisma.post.findMany();
-  //getting all the blogs
-  return c.json({
-    blogs
-  })
-});

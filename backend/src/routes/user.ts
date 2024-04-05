@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import { PrismaClient } from '@prisma/client/edge'
 import { withAccelerate } from '@prisma/extension-accelerate'
 import {sign, verify} from 'hono/jwt'
+import  signupInput  from '../zod'
+
 
 export const userRouter = new Hono<{
     // typescript doesn't understand wrangler.toml code
@@ -18,9 +20,13 @@ userRouter.post('/signup',async (c) => {
       datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate())
     const body = await c.req.json();
-    // no need to check whether user already exist because we have mentioned in schema.prisma , we have check at database level
-    // we dont have to do
-    // const userExist = prisma.user.find()
+    const {success} = signupInput.safeParse(body);
+    if(!success){
+      c.status(411);
+      return c.json({
+        message:"Inputs not correct "
+      })
+    }
     try{     
     const user = await prisma.user.create({
       data:{
