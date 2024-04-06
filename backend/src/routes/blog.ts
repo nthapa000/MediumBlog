@@ -1,3 +1,4 @@
+import { createBlogInput, updateBlogInput } from "nthapa0000_medium-common";
 import { PrismaClient } from "@prisma/client/edge";
 import { Hono } from "hono";
 import { withAccelerate } from "@prisma/extension-accelerate";
@@ -39,19 +40,26 @@ blogRouter.use('/*', async (c, next) => {
      await next()
     }else{
       c.status(403)
-      return c.json({error:"unauthorized"})
+      return c.json({message:"unauthorized"})
     }
   }catch(e){
-    c.status(403)
-    return c.json({error:"error"})
+    c.status(403);
+    return c.json({message:"error"})
   }
   })
-  
 
 blogRouter.post("/", async (c) => {
-  const userId = c.get("userId")
+  
   const body = await c.req.json();
+  const {success} = createBlogInput.safeParse(body);
+  if(!success){
+    c.status(411);
+    return c.json({
+      message:"Inputs not correct"
+    })
+  }
 //   we can modify the context c which we done in the default middleware
+const userId = c.get("userId")
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate());
@@ -72,9 +80,19 @@ blogRouter.post("/", async (c) => {
 
 blogRouter.put("/", async (c) => {
   const body = await c.req.json();
+
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate());
+
+  const {success} = updateBlogInput.safeParse(body);
+  if(!success){
+    c.status(411);
+    return c.json({
+      message:"Inputs not correct"
+    })
+  }
+
 
   const blog = await prisma.post.update({
     where: {
@@ -97,7 +115,18 @@ blogRouter.get("/bulk", async (c) => {
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate());
-  const blogs = await prisma.post.findMany();
+  const blogs = await prisma.post.findMany({
+    select:{
+      content: true,
+            title: true,
+            id: true,
+            author: {
+                select: {
+                    name: true
+                }
+            }
+    }
+  });
   //getting all the blogs
   return c.json({
     blogs
@@ -118,6 +147,16 @@ blogRouter.get("/:id", async (c) => {
       where: {
         id: id,
       },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        author: {
+            select: {
+                name: true
+            }
+        }
+    }
     });
     return c.json({
       blog,
