@@ -24,7 +24,7 @@ userRouter.post('/signup',async (c) => {
     if(!success){
       c.status(411);
       return c.json({
-        message:"Inputs not correct "
+        message:"Inputs are not not correct "
       })
     }
     try{     
@@ -36,10 +36,10 @@ userRouter.post('/signup',async (c) => {
       },
     })
     // Authentications , whole point of signup need to do is entry in database and second thing sign up route need to do is return the user a JWT, user can send in local storage and eventually send in every request
-    const token =await sign({
+    const jwt =await sign({
       id:user.id
     },c.env.JWT_SECRET)
-    return c.json({jwt: token})
+    return c.text(jwt)
   }catch(e){
     c.status(411)
     return c.text('Invalid')
@@ -56,7 +56,7 @@ userRouter.post('/signup',async (c) => {
       if(!success){
         c.status(411);
         return c.json({
-          message:"Inputs are not correct"
+          message:"Inputs are not not not not correct"
         })
       }
       
@@ -73,6 +73,6 @@ userRouter.post('/signup',async (c) => {
       }
   
       const jwt = await sign({ id: user.id }, c.env.JWT_SECRET);
-      return c.json({ jwt });
+      return c.text(jwt);
   })
   

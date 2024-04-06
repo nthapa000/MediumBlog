@@ -1,20 +1,22 @@
-import { Hono } from 'hono'
-import { userRouter } from './routes/user';
-import { blogRouter } from './routes/blog';
-
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { userRouter } from "./routes/user";
+import { blogRouter } from "./routes/blog";
 
 const app = new Hono<{
   // typescript doesn't understand wrangler.toml code
-  // passing the generics 
-    Bindings: {
-      DATABASE_URL: string;
-      JWT_SECRET:string;
-    }
-}>()
+  // passing the generics
+  Bindings: {
+    DATABASE_URL: string;
+    JWT_SECRET: string;
+  };
+}>();
 
-app.route("/api/v1/user",userRouter)
-app.route("/api/v1/blog",blogRouter)
+app.use("/*", cors());
+
+app.route("/api/v1/user", userRouter);
+app.route("/api/v1/blog", blogRouter);
 
 // dynamic parameter
 
-export default app
+export default app;

@@ -27,12 +27,12 @@ blogRouter.use('/*', async (c, next) => {
     // auth header 
     // Bearer token(format of the token)
     // ["Bearer","token"]
-    const token = header.split(" ")[1]
+    // const token = header.split(" ")[1]
   
     // decode is similar to decode a jwt and give orginal jwt 
     // but verification can be done only with the secret_password
     try{
-    const user =await verify(token,c.env.JWT_SECRET)
+    const user =await verify(header,c.env.JWT_SECRET)
     if(user){
         // we can also do bad solution @ts-ignore
         c.set("userId",user.id)
