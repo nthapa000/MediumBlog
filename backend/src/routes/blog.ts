@@ -44,7 +44,7 @@ blogRouter.use('/*', async (c, next) => {
     }
   }catch(e){
     c.status(403);
-    return c.json({message:"error"})
+    return c.json({message:"Bhai error agaya"})
   }
   })
 
@@ -122,7 +122,7 @@ blogRouter.get("/bulk", async (c) => {
             id: true,
             author: {
                 select: {
-                    name: true
+                    name:true
                 }
             }
     }

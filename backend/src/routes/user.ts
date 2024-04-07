@@ -42,7 +42,7 @@ userRouter.post('/signup',async (c) => {
     return c.text(jwt)
   }catch(e){
     c.status(411)
-    return c.text('Invalid')
+    return c.text("error could be related to database")
   }
   })
   
